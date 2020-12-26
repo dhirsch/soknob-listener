@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.logger import logger
-import sonos
+from soknob import sonos
 
 app = FastAPI()
 

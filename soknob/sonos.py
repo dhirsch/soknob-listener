@@ -4,7 +4,7 @@ from oauthlib.oauth2 import TokenExpiredError
 import requests
 import time
 
-import storage
+from soknob import storage
 
 API_URL = "https://api.ws.sonos.com/control/api/v1"
 
@@ -64,7 +64,7 @@ def get_groups():
     household = config['household']
     url = f"{API_URL}/households/{household}/groups"
     resp = client.get(url)
-    print(resp.json())
+    # print(resp.json())
     return resp.json()
 
 
