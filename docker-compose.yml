@@ -1,0 +1,10 @@
+version: '3.4'
+
+services:
+  soknoblistener:
+    image: soknob-listener
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 4999:4999
