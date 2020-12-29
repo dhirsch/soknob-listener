@@ -20,8 +20,8 @@ class SoknobProtocol(asyncio.DatagramProtocol):
         elif msg == "down":
             change_volume(config.volume_down_delta)
         elif msg == "techo":
-            pass
-
+            logger.info("Starting the Techno")
+            start_playlist(config.techno_playlist_id)
 
 def run():
     loop = asyncio.get_event_loop()
@@ -49,3 +49,6 @@ def change_volume(delta: int):
         logger.warning("Error setting volume")
     logger.debug("Time spent: {}ms", (time.perf_counter_ns() - start_time) / 1000000)
 
+def start_playlist(playlist_id: str):
+    group = sonos.find_primary_group()
+    sonos.start_playlist(group, config.techno_playlist_id)

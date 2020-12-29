@@ -89,24 +89,22 @@ def start_playlist(group_id: str, playlist_id: str, shuffle: bool = True, repeat
 
 @auto_refresh_token
 def make_group():
-    pass
-    # config = storage.get_config()
-    # household = config['household']
-    # players = config['inside_players']
-    # url = f'{API_URL}/households/{household}/groups/createGroup'
-    # body = {
-    #     'playerIds': players
+    household = config.household
+    players = config.inside_players
+    url = f'{api_url}/households/{household}/groups/createGroup'
+    body = {
+        'playerIds': players
+    }
+    resp = client.post(url, json=body).json()
+    group_id = resp.get('groups', {}).get('id')
+
+    for player in players:
+        url = f'{api_url}/players/{player}/playerVolume'
+        client.post(url, json={'volume': 30, 'muted': False})
+
+    # volume_url = f'{API_URL}/groups/{group_id}/groupVolume'
+    # volume_body = {
+    #     'volume': 30
     # }
-    # resp = client.post(url, json=body).json()
-    # group_id = resp.get('groups', {}).get('id')
-
-    # for player in players:
-    #     url = f'{API_URL}/players/{player}/playerVolume'
-    #     client.post(url, json={'volume': 30, 'muted': False})
-
-    # # volume_url = f'{API_URL}/groups/{group_id}/groupVolume'
-    # # volume_body = {
-    # #     'volume': 30
-    # # }
-    # # client.post(volume_url, json=volume_body)
-    # return group_id
+    # client.post(volume_url, json=volume_body)
+    return group_id
