@@ -1,1 +1,4 @@
-from soknob.app import app
+from soknob.app import run
+
+if __name__ == "__main__":
+    run()

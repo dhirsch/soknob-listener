@@ -1,45 +1,51 @@
-import logging
-from typing import Optional
+import asyncio
 import time
 
-
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.logger import logger
+from loguru import logger
 from soknob import sonos
 from soknob import config
 
-app = FastAPI()
+class SoknobProtocol(asyncio.DatagramProtocol):
+    def __init__(self):
+        super().__init__()
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+    def connection_made(self, transport):
+        self.transport = transport
 
-@app.post("/volume/up")
-def volume_up(settings: config.Settings = Depends(config.get_settings)):
-    tic = time.perf_counter_ns()
-    print("Volume Up")
+    def datagram_received(self, data, addr):
+        logger.debug("Received data {}", data)
+        msg = data.decode().rstrip() # remove any trailing newlines
+        if msg == "up":
+            change_volume(config.volume_up_delta)
+        elif msg == "down":
+            change_volume(config.volume_down_delta)
+        elif msg == "techo":
+            pass
+
+
+def run():
+    loop = asyncio.get_event_loop()
+    logger.info("Starting UDP server")
+    listen = loop.create_datagram_endpoint(SoknobProtocol, local_addr=('0.0.0.0', config.udp_port))
+    transport, _ = loop.run_until_complete(listen)
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        logger.info("Keyboard interruptus")
+
+    transport.close()
+    loop.close()
+    logger.info("Closed out")
+
+def change_volume(delta: int):
+    start_time = time.perf_counter_ns()
+    logger.debug("Changing volume by {}", delta)
     group = sonos.find_primary_group()
     if not group:
-        logger.error("Could not find a primary group")
-        raise HTTPException(status_code=400, detail="Could not find primary group")
-    resp = sonos.group_volume_delta(group, settings.volume_up_delta)
+        logger.error("Could not find primary group")
+        return
+    resp = sonos.group_volume_delta(group, delta)
     if resp.status_code != 200:
-        logger.warn("Could not set volume")
-    return resp.json()
-     
-
-@app.post("/volume/down")
-def volume_down(settings: config.Settings = Depends(config.get_settings)):
-    tic = time.perf_counter_ns()
-    print("Volume Down")
-    group = sonos.find_primary_group()
-    if not group:
-        logger.error("Could not find a primary group")
-        raise HTTPException(status_code=400, detail="Could not find primary group")
-    resp = sonos.group_volume_delta(group, settings.volume_down_delta)
-    if resp.status_code != 200:
-        logger.warn("Could not set volume")
-    tock = time.perf_counter_ns()
-    print("Time:", (tock-tic) / 1000000)
-    return resp.json()
+        logger.warning("Error setting volume")
+    logger.debug("Time spent: {}ms", (time.perf_counter_ns() - start_time) / 1000000)
 

@@ -7,8 +7,7 @@ import time
 from soknob import config
 from soknob import redis
 
-settings = config.get_settings()
-api_url = settings.sonos_api_url  # just for convenience
+api_url = config.sonos_api_url  # just for convenience
 
 client = OAuth2Session(
     client_id=redis.get_redis().get(redis.SONOS_API_KEY),
@@ -16,29 +15,12 @@ client = OAuth2Session(
 )
 client.headers['Content-Type'] = 'application/json'
 
-# def sonos_oauth_refresh_client():
-#     config = storage.get_config()
-#     token = config.get('token')
-#     if not token:
-#         raise Exception("Missing configuration")
-#     if 'expires_at' in token:
-#         token['expires_in'] = int(token['expires_at'] - time.time())
-#     client = OAuth2Session(
-#         client_id=config['API_KEY'],
-#         scope=['playback-control-all'],
-#         auto_refresh_url='https://api.sonos.com/login/v3/oauth/access',
-#         token_updater=save_token_data,
-#         token=token
-#     )
-#     client.headers['Content-Type'] = 'application/json'
-#     return client
-
 
 def refresh_token():
     print('Refreshing token')
     rc = redis.get_redis()
     token = client.refresh_token(
-        settings.sonos_api_refresh_url,
+        config.sonos_api_refresh_url,
         refresh_token=redis.get_token().get('refresh_token'),
         auth=(rc.get(redis.SONOS_API_KEY), rc.get(redis.SONOS_API_SECRET))
     )
@@ -60,7 +42,7 @@ def auto_refresh_token(func):
 
 @auto_refresh_token
 def get_groups():
-    household = settings.household
+    household = config.household
     url = f"{api_url}/households/{household}/groups"
     resp = client.get(url)
     return resp.json()
@@ -75,11 +57,11 @@ def find_primary_group():
         return primary_group
 
     groups = get_groups()
-    primary = settings.main_player
+    primary = config.main_player
     for group in groups.get('groups', []):
         if primary in group['playerIds']:
             primary_group = group['id']
-            rc.set(redis.PRIMARY_GROUP, primary_group, ex=settings.primary_group_ttl)
+            rc.set(redis.PRIMARY_GROUP, primary_group, ex=config.primary_group_ttl)
             return primary_group
     return None
 
